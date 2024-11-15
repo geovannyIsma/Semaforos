@@ -220,7 +220,7 @@ class Main:
         self.screen = pygame.display.set_mode((self.screenWidth, self.screenHeight))
         pygame.display.set_caption("Simulación de Tráfico")
         self.font = pygame.font.Font('fonts/Roboto-Regular.ttf', 25)
-        self.background = pygame.image.load('images/intersection.png')
+        self.background = pygame.image.load('images/Diseño sin título(1).png')
         self.menu()
 
     def menu(self):

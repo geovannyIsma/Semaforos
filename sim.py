@@ -14,10 +14,10 @@ rojoFueraPicoDefecto = 30   # 30 segundos de luz roja fuera de horas pico
 usarHorasPico = True  # Cambia a False para usar horas no pico
 casoSeleccionado = 1
 
-señales = []
-numeroDeSeñales = 4
+signals = []
+numeroDeSignals = 4
 verdeActual = 0  # Indica cuál señal está en verde actualmente
-siguienteVerde = (verdeActual + 1) % numeroDeSeñales  # Indica cuál señal se pondrá verde a continuación
+siguienteVerde = (verdeActual + 1) % numeroDeSignals  # Indica cuál señal se pondrá verde a continuación
 
 # Velocidad para el único tipo de vehículo (por ejemplo, "coche")
 velocidades = {'coche': 2.25}
@@ -159,31 +159,31 @@ def obtenerTiempoDeTraficoActual():
 def inicializar():
     global verdeDefecto, rojoDefecto
     tiempoVerde, tiempoRojo = obtenerTiempoDeTraficoActual()
-    verdeDefecto = {i: tiempoVerde for i in range(numeroDeSeñales)}  # Asignar el mismo tiempo de verde para todas las señales
+    verdeDefecto = {i: tiempoVerde for i in range(numeroDeSignals)}  # Asignar el mismo tiempo de verde para todas las señales
     rojoDefecto = tiempoRojo
-    for i in range(numeroDeSeñales):
-        señales.append(SeñalDeTrafico(tiempoRojo, tiempoVerde))
+    for i in range(numeroDeSignals):
+        signals.append(SeñalDeTrafico(tiempoRojo, tiempoVerde))
     repetir()
 
 def actualizarValores():
-    for i in range(numeroDeSeñales):
+    for i in range(numeroDeSignals):
         if i == verdeActual:
-            señales[i].verde -= 1
+            signals[i].verde -= 1
         else:
-            señales[i].rojo -= 1
+            signals[i].rojo -= 1
 
 def repetir():
     global verdeActual, siguienteVerde
-    while señales[verdeActual].verde > 0:
+    while signals[verdeActual].verde > 0:
         actualizarValores()
         time.sleep(1 / velocidadSimulacion)  # Ajuste del tiempo de espera según la velocidad de simulación
 
-    señales[verdeActual].verde = verdeDefecto[verdeActual]
-    señales[verdeActual].rojo = rojoDefecto
+    signals[verdeActual].verde = verdeDefecto[verdeActual]
+    signals[verdeActual].rojo = rojoDefecto
 
     verdeActual = siguienteVerde
-    siguienteVerde = (verdeActual + 1) % numeroDeSeñales
-    señales[siguienteVerde].rojo = señales[verdeActual].verde
+    siguienteVerde = (verdeActual + 1) % numeroDeSignals
+    signals[siguienteVerde].rojo = signals[verdeActual].verde
     repetir()
 
 def generarVehiculos():
@@ -216,8 +216,8 @@ class Principal:
         self.altoPantalla = 800
         self.pantalla = pygame.display.set_mode((self.anchoPantalla, self.altoPantalla))
         pygame.display.set_caption("Simulación de Tráfico")
-        self.fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 25)
-        self.fondo = pygame.image.load('images/intersection.png')
+        self.fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 20)
+        self.fondo = pygame.image.load('images/intersection2.png')
         self.menu()
 
     def menu(self):
@@ -270,13 +270,14 @@ class Principal:
         blanco = (255, 255, 255)
         rojo = (255, 0, 0)
         verde = (0, 255, 0)
+        azul = (0, 0, 255)
         pantalla = self.pantalla
 
         hilo2 = threading.Thread(name="generarVehiculos", target=generarVehiculos, args=())
         hilo2.daemon = True
         hilo2.start()
 
-        fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 30)
+        fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 25)
         tiempo_inicio = time.time()
 
         while True:
@@ -293,22 +294,29 @@ class Principal:
                     sys.exit()
             pantalla.blit(self.fondo, (0, 0))
 
-            for i in range(numeroDeSeñales):
+            for i in range(numeroDeSignals):
                 if i == verdeActual:
-                    señales[i].textoSeñal = señales[i].verde
+                    signals[i].textoSeñal = signals[i].verde
                     color = verde
                 else:
-                    señales[i].textoSeñal = señales[i].rojo
+                    signals[i].textoSeñal = signals[i].rojo
                     color = rojo
                 pygame.draw.circle(pantalla, color, coordenadasSeñal[i], 20)
-                texto = fuente.render(str(señales[i].textoSeñal), True, blanco, negro)
+                texto = fuente.render(str(signals[i].textoSeñal), True, negro)
                 pantalla.blit(texto, coordenadasTemporizadorSeñal[i])
 
-            for direccion in tiempoDeEsperaPromedio:
+            # Mostrar el tiempo de espera promedio en la posición de cada dirección
+            posiciones_espera_promedio = {
+                'derecha': (1000, 300),
+                'abajo': (800, 700),
+                'izquierda': (200, 500),
+                'arriba': (400, 100)
+            }
+            for direccion, posicion in posiciones_espera_promedio.items():
                 texto_espera_promedio = fuente.render(
-                    f"Espera Promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s", True, blanco, negro
+                    f"Espera Promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s", True, azul
                 )
-                pantalla.blit(texto_espera_promedio, (50, 50 + list(tiempoDeEsperaPromedio.keys()).index(direccion) * 30))
+                pantalla.blit(texto_espera_promedio, posicion)
 
             for vehiculo in simulacion:
                 vehiculo.mover()
@@ -324,7 +332,7 @@ class Principal:
         sys.exit()
 
     def ajustar_tiempos_de_trafico(self):
-        global señales
+        global signals
         # Ajustar los tiempos de luz verde para priorizar direcciones con mayor flujo de tráfico
         flujo_de_trafico = {
             direccion: len(vehiculos[direccion][0]) + len(vehiculos[direccion][1]) + len(vehiculos[direccion][2])
@@ -333,11 +341,11 @@ class Principal:
         tiempos_verde = [40, 30, 20, 10]  # Ejemplo de tiempos de verde ajustados
 
         # Asegurarse de que el número de tiempos de verde no exceda el número de señales
-        tiempos_verde = tiempos_verde[:len(señales)]
+        tiempos_verde = tiempos_verde[:len(signals)]
 
         for i, direccion in enumerate(flujo_ordenado):
-            if i < len(señales):
-                señales[i].verde = tiempos_verde[i]
+            if i < len(signals):
+                signals[i].verde = tiempos_verde[i]
         rojoDefecto = 40
 
 Principal()
