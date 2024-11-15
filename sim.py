@@ -4,25 +4,21 @@ import threading
 import pygame
 import sys
 
-# Valores por defecto para los temporizadores de luces
 verdePicoDefecto = 20  # 20 segundos de luz verde en horas pico
 rojoPicoDefecto = 40   # 40 segundos de luz roja en horas pico
 verdeFueraPicoDefecto = 30  # 30 segundos de luz verde fuera de horas pico
 rojoFueraPicoDefecto = 30   # 30 segundos de luz roja fuera de horas pico
 
-# Selección manual de horario
-usarHorasPico = True  # Cambia a False para usar horas no pico
+usarHorasPico = True
 casoSeleccionado = 1
 
 signals = []
 numeroDeSignals = 4
-verdeActual = 0  # Indica cuál señal está en verde actualmente
-siguienteVerde = (verdeActual + 1) % numeroDeSignals  # Indica cuál señal se pondrá verde a continuación
+verdeActual = 0
+siguienteVerde = (verdeActual + 1) % numeroDeSignals
 
-# Velocidad para el único tipo de vehículo (por ejemplo, "coche")
 velocidades = {'coche': 2.25}
 
-# Coordenadas de inicio de los vehículos
 x = {'derecha': [0, 0, 0], 'abajo': [755, 727, 697], 'izquierda': [1400, 1400, 1400], 'arriba': [602, 627, 657]}
 y = {'derecha': [348, 370, 398], 'abajo': [0, 0, 0], 'izquierda': [498, 466, 436], 'arriba': [800, 800, 800]}
 
@@ -31,21 +27,17 @@ vehiculos = {'derecha': {0: [], 1: [], 2: [], 'cruzado': 0}, 'abajo': {0: [], 1:
 tiposDeVehiculos = {0: 'coche'}
 numerosDeDireccion = {0: 'derecha', 1: 'abajo', 2: 'izquierda', 3: 'arriba'}
 
-# Coordenadas de la imagen de la señal, temporizador y conteo de vehículos
 coordenadasSeñal = [(530, 230), (810, 230), (810, 570), (530, 570)]
 coordenadasTemporizadorSeñal = [(530, 210), (810, 210), (810, 550), (530, 550)]
 
-# Coordenadas de las líneas de parada
 lineasDeParada = {'derecha': 590, 'abajo': 330, 'izquierda': 800, 'arriba': 535}
 paradaDefecto = {'derecha': 580, 'abajo': 320, 'izquierda': 810, 'arriba': 545}
 
-# Espacio entre vehículos
-espacioDeParada = 15  # espacio de parada
-espacioDeMovimiento = 15  # espacio de movimiento
+espacioDeParada = 15
+espacioDeMovimiento = 15
 
-# Tiempo de espera promedio para cada dirección
-tiemposDeEspera = {'derecha': [], 'abajo': [], 'izquierda': [], 'arriba': []}  # Almacena los tiempos de espera individuales
-tiempoDeEsperaPromedio = {'derecha': 0, 'abajo': 0, 'izquierda': 0, 'arriba': 0}  # Almacena el tiempo de espera promedio
+tiemposDeEspera = {'derecha': [], 'abajo': [], 'izquierda': [], 'arriba': []}
+tiempoDeEsperaPromedio = {'derecha': 0, 'abajo': 0, 'izquierda': 0, 'arriba': 0}
 
 pygame.init()
 simulacion = pygame.sprite.Group()
@@ -53,10 +45,9 @@ simulacion = pygame.sprite.Group()
 # Tiempo total de simulación en segundos (60 minutos)
 tiempoTotalSimulacion = 60 * 60
 
-# Factor de velocidad de simulación
-velocidadSimulacion = 1  # Ajuste de la velocidad de simulación (1 = tiempo real)
+velocidadSimulacion = 200
 
-class SeñalDeTrafico:
+class SignalTrafico:
     def __init__(self, rojo, verde):
         self.rojo = rojo
         self.verde = verde
@@ -76,10 +67,8 @@ class Vehiculo(pygame.sprite.Sprite):
         vehiculos[direccion][carril].append(self)
         self.indice = len(vehiculos[direccion][carril]) - 1
 
-        # Establecer color para todos los vehículos a azul (color del coche)
         self.color = (0, 0, 255)
 
-        # Ajusta el tamaño del vehículo según la dirección
         if direccion in ['derecha', 'izquierda']:
             self.ancho = 30
             self.alto = 15
@@ -152,17 +141,17 @@ class Vehiculo(pygame.sprite.Sprite):
 def obtenerTiempoDeTraficoActual():
     if usarHorasPico:  # Si usamos hora pico
         return verdePicoDefecto, rojoPicoDefecto
-    else:  # Si usamos fuera de hora pico
+    else:
         return verdeFueraPicoDefecto, rojoFueraPicoDefecto
 
 # Lógica de actualización de luces
 def inicializar():
     global verdeDefecto, rojoDefecto
     tiempoVerde, tiempoRojo = obtenerTiempoDeTraficoActual()
-    verdeDefecto = {i: tiempoVerde for i in range(numeroDeSignals)}  # Asignar el mismo tiempo de verde para todas las señales
+    verdeDefecto = {i: tiempoVerde for i in range(numeroDeSignals)}
     rojoDefecto = tiempoRojo
     for i in range(numeroDeSignals):
-        signals.append(SeñalDeTrafico(tiempoRojo, tiempoVerde))
+        signals.append(SignalTrafico(tiempoRojo, tiempoVerde))
     repetir()
 
 def actualizarValores():
@@ -176,7 +165,7 @@ def repetir():
     global verdeActual, siguienteVerde
     while signals[verdeActual].verde > 0:
         actualizarValores()
-        time.sleep(1 / velocidadSimulacion)  # Ajuste del tiempo de espera según la velocidad de simulación
+        time.sleep(1 / velocidadSimulacion)
 
     signals[verdeActual].verde = verdeDefecto[verdeActual]
     signals[verdeActual].rojo = rojoDefecto
@@ -202,7 +191,6 @@ def generarVehiculos():
             numeroDeDireccion = 3
         Vehiculo(numeroDeCarril, numeroDeDireccion, numerosDeDireccion[numeroDeDireccion])
 
-        # Ajuste dinámico de la tasa de generación de vehículos según hora pico o no pico
         if usarHorasPico:
             # Generación de 20-40 vehículos por minuto (1.5 - 3 segundos por vehículo)
             time.sleep(random.uniform(60/40, 60/20) / velocidadSimulacion)  # Espera entre 1.5 y 3 segundos por vehículo
@@ -217,7 +205,7 @@ class Principal:
         self.pantalla = pygame.display.set_mode((self.anchoPantalla, self.altoPantalla))
         pygame.display.set_caption("Simulación de Tráfico")
         self.fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 20)
-        self.fondo = pygame.image.load('images/intersection2.png')
+        self.fondo = pygame.image.load('images/6p.png')
         self.menu()
 
     def menu(self):
@@ -277,12 +265,12 @@ class Principal:
         hilo2.daemon = True
         hilo2.start()
 
-        fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 25)
+        fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 27)
         tiempo_inicio = time.time()
 
         while True:
             tiempo_actual = time.time()
-            tiempo_transcurrido = (tiempo_actual - tiempo_inicio) * velocidadSimulacion  # Ajuste del tiempo transcurrido según la velocidad de simulación
+            tiempo_transcurrido = (tiempo_actual - tiempo_inicio) * velocidadSimulacion
 
             if tiempo_transcurrido >= tiempoTotalSimulacion:
                 self.finalizar_simulacion()
