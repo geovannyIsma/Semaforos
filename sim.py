@@ -45,7 +45,7 @@ simulacion = pygame.sprite.Group()
 # Tiempo total de simulación en segundos (60 minutos)
 tiempoTotalSimulacion = 60 * 60
 
-velocidadSimulacion = 200
+velocidadSimulacion = 100
 
 class SignalTrafico:
     def __init__(self, rojo, verde):
@@ -295,14 +295,14 @@ class Principal:
 
             # Mostrar el tiempo de espera promedio en la posición de cada dirección
             posiciones_espera_promedio = {
-                'derecha': (1000, 300),
-                'abajo': (800, 700),
-                'izquierda': (200, 500),
-                'arriba': (400, 100)
+                'derecha': (850, 250),
+                'abajo': (800, 640),
+                'izquierda': (100, 600),
+                'arriba': (200, 120)
             }
             for direccion, posicion in posiciones_espera_promedio.items():
                 texto_espera_promedio = fuente.render(
-                    f"Espera Promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s", True, azul
+                    f"Espera Promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s", True, blanco
                 )
                 pantalla.blit(texto_espera_promedio, posicion)
 
