@@ -43,9 +43,9 @@ pygame.init()
 simulacion = pygame.sprite.Group()
 
 # Tiempo total de simulación en segundos (60 minutos)
-tiempoTotalSimulacion = 60 * 60
+tiempoTotalSimulacion = 6 * 60
 
-velocidadSimulacion = 100
+velocidadSimulacion = 1
 
 class SignalTrafico:
     def __init__(self, rojo, verde):
@@ -216,7 +216,6 @@ class Principal:
                 "1. Escenario 1: Horas pico con tiempos estándar de luz verde y roja.",
                 "2. Escenario 2: Horas no pico con tiempos estándar de luz verde y roja.",
                 "3. Escenario 3: Ajuste del tiempo de luz verde y roja para priorizar las direcciones con mayor flujo de tráfico.",
-                "4. Establecer velocidad de simulación",
                 "5. Salir"
             ]
             for i, texto in enumerate(texto_menu):
@@ -320,20 +319,55 @@ class Principal:
         sys.exit()
 
     def ajustar_tiempos_de_trafico(self):
-        global signals
-        # Ajustar los tiempos de luz verde para priorizar direcciones con mayor flujo de tráfico
-        flujo_de_trafico = {
-            direccion: len(vehiculos[direccion][0]) + len(vehiculos[direccion][1]) + len(vehiculos[direccion][2])
-            for direccion in vehiculos}
-        flujo_ordenado = sorted(flujo_de_trafico.items(), key=lambda item: item[1], reverse=True)
-        tiempos_verde = [40, 30, 20, 10]  # Ejemplo de tiempos de verde ajustados
+        global verdeDefecto, rojoDefecto, verdeActual
+        # Primero, calculamos el número de vehículos esperando en cada dirección
+        vehiculos_en_espera = {
+            'derecha': sum(len(vehiculos['derecha'][i]) for i in range(3)),
+            'abajo': sum(len(vehiculos['abajo'][i]) for i in range(3)),
+            'izquierda': sum(len(vehiculos['izquierda'][i]) for i in range(3)),
+            'arriba': sum(len(vehiculos['arriba'][i]) for i in range(3)),
+        }
 
-        # Asegurarse de que el número de tiempos de verde no exceda el número de señales
-        tiempos_verde = tiempos_verde[:len(signals)]
+        # Calculamos el total de vehículos esperando
+        total_vehiculos = sum(vehiculos_en_espera.values())
 
-        for i, direccion in enumerate(flujo_ordenado):
-            if i < len(signals):
-                signals[i].verde = tiempos_verde[i]
-        rojoDefecto = 40
+        # Si no hay vehículos, no hacemos ningún ajuste
+        if total_vehiculos == 0:
+            return
+
+        # Ajuste de tiempos en función del número de vehículos esperando
+        tiempo_total_ajustado = sum(
+            [verdePicoDefecto, verdeFueraPicoDefecto])  # Tiempo total verde para todas las direcciones
+        tiempos_verde_ajustados = {}
+
+        for direccion, vehiculos_en_espera_direccion in vehiculos_en_espera.items():
+            porcentaje_espera = vehiculos_en_espera_direccion / total_vehiculos
+            tiempo_verde_ajustado = tiempo_total_ajustado * porcentaje_espera
+            tiempos_verde_ajustados[direccion] = max(5,int(tiempo_verde_ajustado))  # Evitar que el tiempo verde sea demasiado bajo
+
+        # Actualizamos los tiempos de luz verde para cada dirección
+        for i in range(numeroDeSignals):
+            direccion = numerosDeDireccion[i]
+            if usarHorasPico:
+                verdeDefecto[i] = tiempos_verde_ajustados[direccion]
+            else:
+                verdeDefecto[i] = max(verdeFueraPicoDefecto, tiempos_verde_ajustados[direccion])
+
+        # Ajustamos los tiempos de luz roja en función del tiempo verde de la señal
+        for i in range(numeroDeSignals):
+            if usarHorasPico:
+                rojoDefecto = max(rojoPicoDefecto, sum(verdeDefecto.values()) - verdeDefecto[
+                    i])  # El tiempo rojo depende de los verdes restantes
+            else:
+                rojoDefecto = max(rojoFueraPicoDefecto, sum(verdeDefecto.values()) - verdeDefecto[i])
+
+        # Iniciamos el ciclo de luces de tráfico con los nuevos tiempos
+        print("Tiempos ajustados de luces de tráfico:", verdeDefecto, rojoDefecto)
+
+        # Reemplazar las señales de tráfico con los nuevos tiempos ajustados
+        for i in range(numeroDeSignals):
+            signals[i].verde = verdeDefecto[i]
+            signals[i].rojo = rojoDefecto
+
 
 Principal()
