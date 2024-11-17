@@ -6,7 +6,7 @@ rojoFueraPicoDefecto = 30  # 30 segundos de luz roja fuera de horas pico
 usarHorasPico = True
 casoSeleccionado = 1
 
-signals = []
+semaforos = []
 numeroDeSemaforos = 4
 verdeActual = 0
 siguienteVerde = (verdeActual + 1) % numeroDeSemaforos
@@ -38,3 +38,4 @@ tiempoTotalSimulacion = 60 * 60
 
 # x1, x2, ......
 velocidadSimulacion = 1
+

@@ -137,7 +137,7 @@ class Escenario:
         self.ajuste_dinamico = ajuste_dinamico
         self.verde_defecto = {}
         self.rojo_defecto = 0
-        self.signals = []
+        self.semaforos = []
 
     def obtener_tiempo_de_trafico_actual(self):
         if self.usar_horas_pico:
@@ -150,7 +150,7 @@ class Escenario:
         self.verde_defecto = {i: tiempo_verde for i in range(numeroDeSemaforos)}
         self.rojo_defecto = tiempo_rojo
         for i in range(numeroDeSemaforos):
-            self.signals.append(Semaforo(tiempo_rojo, tiempo_verde))
+            self.semaforos.append(Semaforo(tiempo_rojo, tiempo_verde))
         if self.ajuste_dinamico:
             self.ajustar_tiempos_semaforos()
         self.repetir()
@@ -158,9 +158,9 @@ class Escenario:
     def actualizar_valores(self):
         for i in range(numeroDeSemaforos):
             if i == verdeActual:
-                self.signals[i].verde -= 1
+                self.semaforos[i].verde -= 1
             else:
-                self.signals[i].rojo -= 1
+                self.semaforos[i].rojo -= 1
 
     def ajustar_tiempos_semaforos(self):
         base_verde = 10
@@ -176,20 +176,20 @@ class Escenario:
             else:
                 tiempo_verde = base_verde
 
-            self.signals[i].verde = tiempo_verde
-            self.signals[i].rojo = 60 - tiempo_verde
+            self.semaforos[i].verde = tiempo_verde
+            self.semaforos[i].rojo = 60 - tiempo_verde
 
     def repetir(self):
         global verdeActual, siguienteVerde
         while True:
-            while self.signals[verdeActual].verde > 0:
+            while self.semaforos[verdeActual].verde > 0:
                 self.actualizar_valores()
                 time.sleep(1 / velocidadSimulacion)
-            self.signals[verdeActual].verde = self.verde_defecto[verdeActual]
-            self.signals[verdeActual].rojo = self.rojo_defecto
+            self.semaforos[verdeActual].verde = self.verde_defecto[verdeActual]
+            self.semaforos[verdeActual].rojo = self.rojo_defecto
             verdeActual = siguienteVerde
             siguienteVerde = (verdeActual + 1) % numeroDeSemaforos
-            self.signals[siguienteVerde].rojo = self.signals[verdeActual].verde
+            self.semaforos[siguienteVerde].rojo = self.semaforos[verdeActual].verde
             if self.ajuste_dinamico:
                 self.ajustar_tiempos_semaforos()
 
@@ -200,7 +200,7 @@ class Principal:
         self.pantalla = pygame.display.set_mode((self.anchoPantalla, self.altoPantalla))
         pygame.display.set_caption("Simulación de Tráfico")
         self.fuente = pygame.font.Font('fonts/Roboto-Regular.ttf', 20)
-        self.fondo = pygame.image.load('images/6p.png')
+        self.fondo = pygame.image.load('images/interseccion.png')
         self.menu()
 
     def menu(self):
@@ -279,7 +279,7 @@ class Principal:
                 pygame.draw.circle(self.pantalla, color, coordenadasSemaforo[i], 20)
 
             if verdeActual is not None:
-                texto = fuente.render(str(escenario.signals[verdeActual].verde), True, (255, 255, 255))
+                texto = fuente.render(str(escenario.semaforos[verdeActual].verde), True, (255, 255, 255))
                 self.pantalla.blit(texto, coordenadasTemporizadorSemaforo[verdeActual])
 
             posiciones_espera_promedio = {
