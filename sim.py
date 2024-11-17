@@ -4,56 +4,18 @@ import threading
 import pygame
 import sys
 
-verdePicoDefecto = 20  # 20 segundos de luz verde en horas pico
-rojoPicoDefecto = 40  # 40 segundos de luz roja en horas pico
-verdeFueraPicoDefecto = 30  # 30 segundos de luz verde fuera de horas pico
-rojoFueraPicoDefecto = 30  # 30 segundos de luz roja fuera de horas pico
-
-usarHorasPico = True
-casoSeleccionado = 1
-
-signals = []
-numeroDeSignals = 4
-verdeActual = 0
-siguienteVerde = (verdeActual + 1) % numeroDeSignals
-
-velocidades = {'coche': 2.25}
-
-x = {'este': [0, 0, 0], 'sur': [755, 727, 697], 'oeste': [1400, 1400, 1400], 'norte': [602, 627, 657]}
-y = {'este': [348, 370, 398], 'sur': [0, 0, 0], 'oeste': [498, 466, 436], 'norte': [800, 800, 800]}
-
-vehiculos = {'este': {0: [], 1: [], 2: [], 'cruzado': 0}, 'sur': {0: [], 1: [], 2: [], 'cruzado': 0},
-             'oeste': {0: [], 1: [], 2: [], 'cruzado': 0}, 'norte': {0: [], 1: [], 2: [], 'cruzado': 0}}
-tiposDeVehiculos = {0: 'coche'}
-numerosDeDireccion = {0: 'este', 1: 'sur', 2: 'oeste', 3: 'norte'}
-
-coordenadasSeñal = [(530, 230), (810, 230), (810, 570), (530, 570)]
-coordenadasTemporizadorSeñal = [(530, 210), (810, 210), (810, 550), (530, 550)]
-
-lineasDeParada = {'este': 590, 'sur': 330, 'oeste': 800, 'norte': 535}
-paradaDefecto = {'este': 580, 'sur': 320, 'oeste': 810, 'norte': 545}
-
-espacioDeParada = 15
-espacioDeMovimiento = 15
-
-tiemposDeEspera = {'este': [], 'sur': [], 'oeste': [], 'norte': []}
-tiempoDeEsperaPromedio = {'este': 0, 'sur': 0, 'oeste': 0, 'norte': 0}
+from configuracion import *
 
 pygame.init()
 simulacion = pygame.sprite.Group()
 
-# Tiempo total de simulación en segundos (60 minutos)
-tiempoTotalSimulacion = 6 * 60
+contadorVehiculos = {'este': 0, 'sur': 0, 'oeste': 0, 'norte': 0}
 
-velocidadSimulacion = 1
-
-
-class SignalTrafico:
+class Semaforo:
     def __init__(self, rojo, verde):
         self.rojo = rojo
         self.verde = verde
-        self.textoSeñal = ""
-
+        self.textoSemaforo = ""
 
 class Vehiculo(pygame.sprite.Sprite):
     def __init__(self, carril, numeroDeDireccion, direccion):
@@ -68,7 +30,7 @@ class Vehiculo(pygame.sprite.Sprite):
         self.cruzado = 0
         vehiculos[direccion][carril].append(self)
         self.indice = len(vehiculos[direccion][carril]) - 1
-
+        contadorVehiculos[direccion] += 1
         self.color = (0, 0, 255)
 
         if direccion in ['este', 'oeste']:
@@ -105,6 +67,7 @@ class Vehiculo(pygame.sprite.Sprite):
                 tiemposDeEspera[self.direccion].append(tiempoDeEspera)
                 tiempoDeEsperaPromedio[self.direccion] = sum(tiemposDeEspera[self.direccion]) / len(
                     tiemposDeEspera[self.direccion])
+                contadorVehiculos[self.direccion] -= 1
             if (self.x + self.ancho <= self.parada or self.cruzado == 1 or verdeActual == 0) and \
                     (self.indice == 0 or self.x + self.ancho < (
                             vehiculos[self.direccion][self.carril][self.indice - 1].x - espacioDeMovimiento)):
@@ -116,6 +79,7 @@ class Vehiculo(pygame.sprite.Sprite):
                 tiemposDeEspera[self.direccion].append(tiempoDeEspera)
                 tiempoDeEsperaPromedio[self.direccion] = sum(tiemposDeEspera[self.direccion]) / len(
                     tiemposDeEspera[self.direccion])
+                contadorVehiculos[self.direccion] -= 1
             if (self.y + self.alto <= self.parada or self.cruzado == 1 or verdeActual == 1) and \
                     (self.indice == 0 or self.y + self.alto < (
                             vehiculos[self.direccion][self.carril][self.indice - 1].y - espacioDeMovimiento)):
@@ -127,6 +91,7 @@ class Vehiculo(pygame.sprite.Sprite):
                 tiemposDeEspera[self.direccion].append(tiempoDeEspera)
                 tiempoDeEsperaPromedio[self.direccion] = sum(tiemposDeEspera[self.direccion]) / len(
                     tiemposDeEspera[self.direccion])
+                contadorVehiculos[self.direccion] -= 1
             if (self.x >= self.parada or self.cruzado == 1 or verdeActual == 2) and \
                     (self.indice == 0 or self.x > (
                             vehiculos[self.direccion][self.carril][
@@ -139,53 +104,12 @@ class Vehiculo(pygame.sprite.Sprite):
                 tiemposDeEspera[self.direccion].append(tiempoDeEspera)
                 tiempoDeEsperaPromedio[self.direccion] = sum(tiemposDeEspera[self.direccion]) / len(
                     tiemposDeEspera[self.direccion])
+                contadorVehiculos[self.direccion] -= 1
             if (self.y >= self.parada or self.cruzado == 1 or verdeActual == 3) and \
                     (self.indice == 0 or self.y > (
                             vehiculos[self.direccion][self.carril][
                                 self.indice - 1].y + self.alto + espacioDeMovimiento)):
                 self.y -= self.velocidad
-
-
-# Inicializamos los tiempos de luces en función de si es hora pico o no
-def obtenerTiempoDeTraficoActual():
-    if usarHorasPico:  # Si usamos hora pico
-        return verdePicoDefecto, rojoPicoDefecto
-    else:
-        return verdeFueraPicoDefecto, rojoFueraPicoDefecto
-
-
-# Lógica de actualización de luces
-def inicializar():
-    global verdeDefecto, rojoDefecto
-    tiempoVerde, tiempoRojo = obtenerTiempoDeTraficoActual()
-    verdeDefecto = {i: tiempoVerde for i in range(numeroDeSignals)}
-    rojoDefecto = tiempoRojo
-    for i in range(numeroDeSignals):
-        signals.append(SignalTrafico(tiempoRojo, tiempoVerde))
-    repetir()
-
-
-def actualizarValores():
-    for i in range(numeroDeSignals):
-        if i == verdeActual:
-            signals[i].verde -= 1
-        else:
-            signals[i].rojo -= 1
-
-
-def repetir():
-    global verdeActual, siguienteVerde
-    while signals[verdeActual].verde > 0:
-        actualizarValores()
-        time.sleep(1 / velocidadSimulacion)
-
-    signals[verdeActual].verde = verdeDefecto[verdeActual]
-    signals[verdeActual].rojo = rojoDefecto
-
-    verdeActual = siguienteVerde
-    siguienteVerde = (verdeActual + 1) % numeroDeSignals
-    signals[siguienteVerde].rojo = signals[verdeActual].verde
-    repetir()
 
 
 def generarVehiculos():
@@ -204,15 +128,70 @@ def generarVehiculos():
             numeroDeDireccion = 3
         Vehiculo(numeroDeCarril, numeroDeDireccion, numerosDeDireccion[numeroDeDireccion])
 
-        if usarHorasPico:
-            # Generación de 20-40 vehículos por minuto (1.5 - 3 segundos por vehículo)
-            time.sleep(
-                random.uniform(60 / 40, 60 / 20) / velocidadSimulacion)  # Espera entre 1.5 y 3 segundos por vehículo
-        else:
-            # Generación de 10-25 vehículos por minuto (2.4 - 6 segundos por vehículo)
-            time.sleep(
-                random.uniform(60 / 25, 60 / 10) / velocidadSimulacion)  # Espera entre 2.4 y 6 segundos por vehículo
+        # Generación de vehículos en horas pico
+        time.sleep(random.uniform(60 / 40, 60 / 20) / velocidadSimulacion)
 
+class Escenario:
+    def __init__(self, usar_horas_pico, ajuste_dinamico):
+        self.usar_horas_pico = usar_horas_pico
+        self.ajuste_dinamico = ajuste_dinamico
+        self.verde_defecto = {}
+        self.rojo_defecto = 0
+        self.signals = []
+
+    def obtener_tiempo_de_trafico_actual(self):
+        if self.usar_horas_pico:
+            return verdePicoDefecto, rojoPicoDefecto
+        else:
+            return verdeFueraPicoDefecto, rojoFueraPicoDefecto
+
+    def inicializar(self):
+        tiempo_verde, tiempo_rojo = self.obtener_tiempo_de_trafico_actual()
+        self.verde_defecto = {i: tiempo_verde for i in range(numeroDeSemaforos)}
+        self.rojo_defecto = tiempo_rojo
+        for i in range(numeroDeSemaforos):
+            self.signals.append(Semaforo(tiempo_rojo, tiempo_verde))
+        if self.ajuste_dinamico:
+            self.ajustar_tiempos_semaforos()
+        self.repetir()
+
+    def actualizar_valores(self):
+        for i in range(numeroDeSemaforos):
+            if i == verdeActual:
+                self.signals[i].verde -= 1
+            else:
+                self.signals[i].rojo -= 1
+
+    def ajustar_tiempos_semaforos(self):
+        base_verde = 10
+        max_verde = 40
+        umbral_espera = 10
+        for i in range(numeroDeSemaforos):
+            direccion = numerosDeDireccion[i]
+            num_vehiculos = sum(len(vehiculos[direccion][j]) for j in range(3))
+            tiempo_espera_promedio = tiempoDeEsperaPromedio[direccion]
+
+            if num_vehiculos > 0 or tiempo_espera_promedio > umbral_espera:
+                tiempo_verde = base_verde + int(min(num_vehiculos / 2, max_verde - base_verde))
+            else:
+                tiempo_verde = base_verde
+
+            self.signals[i].verde = tiempo_verde
+            self.signals[i].rojo = 60 - tiempo_verde
+
+    def repetir(self):
+        global verdeActual, siguienteVerde
+        while True:
+            while self.signals[verdeActual].verde > 0:
+                self.actualizar_valores()
+                time.sleep(1 / velocidadSimulacion)
+            self.signals[verdeActual].verde = self.verde_defecto[verdeActual]
+            self.signals[verdeActual].rojo = self.rojo_defecto
+            verdeActual = siguienteVerde
+            siguienteVerde = (verdeActual + 1) % numeroDeSemaforos
+            self.signals[siguienteVerde].rojo = self.signals[verdeActual].verde
+            if self.ajuste_dinamico:
+                self.ajustar_tiempos_semaforos()
 
 class Principal:
     def __init__(self):
@@ -256,25 +235,20 @@ class Principal:
                         sys.exit()
 
     def iniciar_simulacion(self, caso):
-        global usarHorasPico, casoSeleccionado
-        casoSeleccionado = caso
-        if caso == 1:
-            usarHorasPico = True
-        elif caso == 2:
-            usarHorasPico = False
-        elif caso == 3:
-            self.ajustar_tiempos_de_trafico()
+        global verdeActual, siguienteVerde
+        verdeActual = 0
+        siguienteVerde = (verdeActual + 1) % numeroDeSemaforos
 
-        hilo1 = threading.Thread(name="inicializacion", target=inicializar, args=())
+        if caso == 1:
+            escenario = Escenario(usar_horas_pico=True, ajuste_dinamico=False)
+        elif caso == 2:
+            escenario = Escenario(usar_horas_pico=False, ajuste_dinamico=False)
+        elif caso == 3:
+            escenario = Escenario(usar_horas_pico=True, ajuste_dinamico=True)
+
+        hilo1 = threading.Thread(name="inicializacion", target=escenario.inicializar, args=())
         hilo1.daemon = True
         hilo1.start()
-
-        negro = (0, 0, 0)
-        blanco = (255, 255, 255)
-        rojo = (255, 0, 0)
-        verde = (0, 255, 0)
-        azul = (0, 0, 255)
-        pantalla = self.pantalla
 
         hilo2 = threading.Thread(name="generarVehiculos", target=generarVehiculos, args=())
         hilo2.daemon = True
@@ -295,20 +269,19 @@ class Principal:
                 if evento.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-            pantalla.blit(self.fondo, (0, 0))
+            self.pantalla.blit(self.fondo, (0, 0))
 
-            for i in range(numeroDeSignals):
+            for i in range(numeroDeSemaforos):
                 if i == verdeActual:
-                    signals[i].textoSeñal = signals[i].verde
-                    color = verde
+                    color = (0, 255, 0)
                 else:
-                    signals[i].textoSeñal = signals[i].rojo
-                    color = rojo
-                pygame.draw.circle(pantalla, color, coordenadasSeñal[i], 20)
-                texto = fuente.render(str(signals[i].textoSeñal), True, negro)
-                pantalla.blit(texto, coordenadasTemporizadorSeñal[i])
+                    color = (255, 0, 0)
+                pygame.draw.circle(self.pantalla, color, coordenadasSemaforo[i], 20)
 
-            # Mostrar el tiempo de espera promedio en la posición de cada dirección
+            if verdeActual is not None:
+                texto = fuente.render(str(escenario.signals[verdeActual].verde), True, (255, 255, 255))
+                self.pantalla.blit(texto, coordenadasTemporizadorSemaforo[verdeActual])
+
             posiciones_espera_promedio = {
                 'este': (850, 250),
                 'sur': (800, 640),
@@ -317,13 +290,17 @@ class Principal:
             }
             for direccion, posicion in posiciones_espera_promedio.items():
                 texto_espera_promedio = fuente.render(
-                    f"Espera Promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s", True, blanco
+                    f"Espera Promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s", True, (255, 255, 255)
                 )
-                pantalla.blit(texto_espera_promedio, posicion)
+                self.pantalla.blit(texto_espera_promedio, posicion)
+
+                texto_numero_vehiculos = fuente.render(
+                    f"Número de vehículos {direccion.capitalize()}: {contadorVehiculos[direccion]}", True, (255, 255, 255))
+                self.pantalla.blit(texto_numero_vehiculos, (posicion[0], posicion[1] + 30))
 
             for vehiculo in simulacion:
                 vehiculo.mover()
-                vehiculo.renderizar(pantalla)
+                vehiculo.renderizar(self.pantalla)
 
             pygame.display.update()
 
@@ -331,59 +308,15 @@ class Principal:
         print("Simulación finalizada. Resultados:")
         for direccion in tiempoDeEsperaPromedio:
             print(f"Tiempo de espera promedio {direccion.capitalize()}: {tiempoDeEsperaPromedio[direccion]:.2f}s")
+
+        tiemposDeEsperaTotal = sum([sum(tiemposDeEspera[direccion]) for direccion in tiemposDeEspera])
+        numeroDeVehiculosTotal = sum([len(vehiculos[direccion][i]) for direccion in vehiculos for i in range(3)])
+        tiempoPromedioTotal = tiemposDeEsperaTotal / numeroDeVehiculosTotal
+
+        print(f"\nNúmero total de vehículos: {numeroDeVehiculosTotal}")
+        print(f"\nTiempo de espera promedio total: {tiempoPromedioTotal:.2f}s")
+
         pygame.quit()
         sys.exit()
-
-    def ajustar_tiempos_de_trafico(self):
-        global verdeDefecto, rojoDefecto, verdeActual
-        # Primero, calculamos el número de vehículos esperando en cada dirección
-        vehiculos_en_espera = {
-            'este': sum(len(vehiculos['este'][i]) for i in range(3)),
-            'sur': sum(len(vehiculos['sur'][i]) for i in range(3)),
-            'oeste': sum(len(vehiculos['oeste'][i]) for i in range(3)),
-            'norte': sum(len(vehiculos['norte'][i]) for i in range(3)),
-        }
-
-        # Calculamos el total de vehículos esperando
-        total_vehiculos = sum(vehiculos_en_espera.values())
-
-        # Si no hay vehículos, no hacemos ningún ajuste
-        if total_vehiculos == 0:
-            return
-
-        # Ajuste de tiempos en función del número de vehículos esperando
-        tiempo_total_ajustado = sum(
-            [verdePicoDefecto, verdeFueraPicoDefecto])  # Tiempo total verde para todas las direcciones
-        tiempos_verde_ajustados = {}
-
-        for direccion, vehiculos_en_espera_direccion in vehiculos_en_espera.items():
-            porcentaje_espera = vehiculos_en_espera_direccion / total_vehiculos
-            tiempo_verde_ajustado = tiempo_total_ajustado * porcentaje_espera
-            tiempos_verde_ajustados[direccion] = max(5,
-                                                     int(tiempo_verde_ajustado))  # Evitar que el tiempo verde sea demasiado bajo
-
-        # Actualizamos los tiempos de luz verde para cada dirección
-        for i in range(numeroDeSignals):
-            direccion = numerosDeDireccion[i]
-            if usarHorasPico:
-                verdeDefecto[i] = tiempos_verde_ajustados[direccion]
-            else:
-                verdeDefecto[i] = max(verdeFueraPicoDefecto, tiempos_verde_ajustados[direccion])
-
-        # Ajustamos los tiempos de luz roja en función del tiempo verde de la señal
-        for i in range(numeroDeSignals):
-            if usarHorasPico:
-                rojoDefecto = max(rojoPicoDefecto, sum(verdeDefecto.values()) - verdeDefecto[
-                    i])  # El tiempo rojo depende de los verdes restantes
-            else:
-                rojoDefecto = max(rojoFueraPicoDefecto, sum(verdeDefecto.values()) - verdeDefecto[i])
-
-        # Iniciamos el ciclo de luces de tráfico con los nuevos tiempos
-        print("Tiempos ajustados de luces de tráfico:", verdeDefecto, rojoDefecto)
-
-        # Reemplazar las señales de tráfico con los nuevos tiempos ajustados
-        for i in range(numeroDeSignals):
-            signals[i].verde = verdeDefecto[i]
-            signals[i].rojo = rojoDefecto
 
 Principal()
