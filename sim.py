@@ -56,7 +56,7 @@ class Vehiculo(pygame.sprite.Sprite):
         self.tiempoInicio = time.time()  # Tiempo en que el vehículo empieza a esperar
         simulacion.add(self)
 
-    def renderizar(self, pantalla):
+    def dibujar(self, pantalla):
         pygame.draw.rect(pantalla, self.color, (self.x, self.y, self.ancho, self.alto))
 
     def mover(self):
@@ -193,7 +193,7 @@ class Escenario:
             if self.ajuste_dinamico:
                 self.ajustar_tiempos_semaforos()
 
-class Principal:
+class Main:
     def __init__(self):
         self.anchoPantalla = 1400
         self.altoPantalla = 800
@@ -319,4 +319,4 @@ class Principal:
         pygame.quit()
         sys.exit()
 
-Principal()
+Main()
