@@ -128,8 +128,13 @@ def generarVehiculos():
             numeroDeDireccion = 3
         Vehiculo(numeroDeCarril, numeroDeDireccion, numerosDeDireccion[numeroDeDireccion])
 
-        # Generación de vehículos en horas pico
-        time.sleep(random.uniform(60 / 40, 60 / 20) / velocidadSimulacion)
+        if usarHorasPico:
+            # Generación de 20-40 vehículos por minuto (1.5 - 3 segundos por vehículo)
+            time.sleep(random.uniform(60 / 40, 60 / 20) / velocidadSimulacion)
+        else:
+            # Generación de 10-25 vehículos por minuto (2.4 - 6 segundos por vehículo)
+            time.sleep(random.uniform(60 / 25, 60 / 10) / velocidadSimulacion)
+
 
 class Escenario:
     def __init__(self, usar_horas_pico, ajuste_dinamico):
@@ -300,7 +305,7 @@ class Main:
 
             for vehiculo in simulacion:
                 vehiculo.mover()
-                vehiculo.renderizar(self.pantalla)
+                vehiculo.dibujar(self.pantalla)
 
             pygame.display.update()
 

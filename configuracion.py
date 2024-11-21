@@ -34,7 +34,7 @@ tiemposDeEspera = {'este': [], 'sur': [], 'oeste': [], 'norte': []}
 tiempoDeEsperaPromedio = {'este': 0, 'sur': 0, 'oeste': 0, 'norte': 0}
 
 # Tiempo total de simulación en segundos (60 minutos)
-tiempoTotalSimulacion = 60 * 60
+tiempoTotalSimulacion = 3 * 60
 
 # x1, x2, ......
 velocidadSimulacion = 1
